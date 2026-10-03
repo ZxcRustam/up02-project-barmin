@@ -1,4 +1,4 @@
 """Настройки проекта."""
 
 # Путь к БД (замените N на номер вашего варианта)
-DB_PATH = "databases/db_variant_1.db"
+DB_PATH = "databases/db_variant_22.db"
