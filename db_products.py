@@ -1,81 +1,98 @@
-"""Загрузка товаров из БД с расширенным выводом (Вариант 22: Автомобили)."""
+"""Загрузка товаров из БД в объекты класса Product с фильтрацией (Вариант 22: Автомобили)."""
 
 import sqlite3
 from config import DB_PATH
+from models import Product
 
 
 def get_all_products():
-    """Возвращает список всех автомобилей."""
+    """Возвращает список всех объектов Product из БД."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT * FROM Товар ORDER BY id")
-    products = cur.fetchall()
+    rows = cur.fetchall()
     conn.close()
+
+    products = []
+    for row in rows:
+        product = Product(
+            product_id=row[0],
+            brand=row[1],
+            model=row[2],
+            year=row[3],
+            price=row[4],
+            quantity=row[5],
+            photo=row[6]
+        )
+        products.append(product)
     return products
 
 
-def get_products_by_category(category):
-    """Товары по категории (марке)."""
+def get_products_by_category(brand):
+    """Возвращает список объектов Product по марке (категории)."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Товар WHERE марка = ?", (category,))
-    products = cur.fetchall()
+    cur.execute("SELECT * FROM Товар WHERE марка = ?", (brand,))
+    rows = cur.fetchall()
     conn.close()
+
+    products = []
+    for row in rows:
+        product = Product(
+            product_id=row[0],
+            brand=row[1],
+            model=row[2],
+            year=row[3],
+            price=row[4],
+            quantity=row[5],
+            photo=row[6]
+        )
+        products.append(product)
     return products
 
 
 def get_products_low_stock():
-    """Товары с количеством <= 3 (низкий остаток)."""
+    """Возвращает автомобили с количеством ≤ 3 (низкий остаток)."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT * FROM Товар WHERE количество <= 3")
-    products = cur.fetchall()
+    rows = cur.fetchall()
     conn.close()
+
+    products = []
+    for row in rows:
+        product = Product(
+            product_id=row[0],
+            brand=row[1],
+            model=row[2],
+            year=row[3],
+            price=row[4],
+            quantity=row[5],
+            photo=row[6]
+        )
+        products.append(product)
     return products
 
 
-def get_categories():
-    """Список всех уникальных марок авто."""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT DISTINCT марка FROM Товар ORDER BY марка")
-    categories = [row[0] for row in cur.fetchall()]
-    conn.close()
-    return categories
-
-
-def print_catalog(products):
-    """Каталог с индикатором остатка."""
-    print(f"\n{'=' * 60}")
+def print_catalog_with_highlight(products):
+    """Выводит каталог с подсветкой ⚠️ для автомобилей с количеством ≤ 3."""
+    print(f"\n{'=' * 70}")
     print(f"КАТАЛОГ ({len(products)} автомобилей)")
-    print("=" * 60)
+    print("=" * 70)
 
     for p in products:
-        # Распаковка строго по колонкам твоей базы данных Варианта 22:
-        # 0: id, 1: марка, 2: модель, 3: год, 4: цена, 5: количество
-        brand = p[1]
-        model = p[2]
-        year = p[3]
-        price = p[4]
-        qty = p[5]  # Теперь берем реальное количество из базы (у Honda будет 4!)
+        highlight = "⚠️" if p.quantity <= 3 else "  "
+        print(f"{highlight} {p.info()}")
 
-        indicator = "много" if qty > 3 else "мало"
-        highlight = "⚠️" if qty <= 3 else "  "
-
-        print(f"{highlight} {brand} {model} ({year} г.)")
-        print(f"   Цена: {price} руб. | Кол-во: {qty} шт. ({indicator})")
-        print("-" * 40)
-
-    print("=" * 60)
+    print("=" * 70)
 
 
 if __name__ == "__main__":
-    print("1. Все товары")
-    print_catalog(get_all_products())
+    print("1. Все товары:")
+    print_catalog_with_highlight(get_all_products())
 
-    print("\n2. Категории:")
-    for cat in get_categories():
-        print(f"   - {cat}")
+    print("\n2. Товары категории «Honda»:")
+    print_catalog_with_highlight(get_products_by_category("Honda"))
 
-    print("\n3. Товары с низким остатком (<=3):")
-    print_catalog(get_products_low_stock())
+    print("\n3. Товары с низким остатком (≤3):")
+    print_catalog_with_highlight(get_products_low_stock())
