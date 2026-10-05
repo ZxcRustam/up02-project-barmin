@@ -1,10 +1,14 @@
 """Модели данных для проекта УП.02 (Вариант 22: Автомобили)."""
 
+from datetime import datetime
+from discount import calculate_price_with_discount
+
 
 class Product:
     """Класс Товар (Автомобиль)."""
 
     def __init__(self, product_id, brand, model, year, price, quantity, photo):
+        """Инициализация автомобиля со всеми полями Варианта 22."""
         self.id = product_id
         self.brand = brand
         self.model = model
@@ -14,7 +18,7 @@ class Product:
         self.photo = photo
 
     def is_available(self):
-        """Задание 1. Возвращает True, если автомобиль есть в наличии."""
+        """Возвращает True, если автомобиль есть в наличии."""
         return self.quantity > 0
 
     def total(self):
@@ -22,8 +26,14 @@ class Product:
         return self.price * self.quantity
 
     def price_with_discount(self, discount_percent):
-        """Цена со скидкой."""
+        """Цена со старой фиксированной скидкой."""
         return self.price * (1 - discount_percent / 100)
+
+    def price_with_discount_auto(self, date=None):
+        """Задание 8. Цена со скидкой по автоматическому алгоритму ДЭ."""
+        if date is None:
+            date = datetime.now()
+        return calculate_price_with_discount(self.id, self.price, date)
 
     def indicator(self):
         """Индикатор «много/мало» (порог 3)."""
@@ -40,17 +50,17 @@ class Product:
 
 
 class Order:
-    """Задание 2. Класс Заказ."""
+    """Класс Заказ."""
 
     def __init__(self, order_id, date, client, product, quantity):
         self.id = order_id
         self.date = date
         self.client = client
-        self.product = product      # Сюда будет передаваться объект класса Product
+        self.product = product  # Объект класса Product
         self.quantity = quantity
 
     def total(self):
-        """Стоимость заказа (берется цена из объекта связанного автомобиля)."""
+        """Стоимость заказа."""
         return self.product.price * self.quantity
 
     def info(self):
