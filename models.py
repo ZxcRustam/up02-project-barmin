@@ -67,6 +67,10 @@ class Order:
         """Стоимость заказа."""
         return self.product.price * self.quantity
 
+    def order_info(self):
+        """Домашнее задание: краткая информация о заказе."""
+        return f"Заказ №{self.id} от {self.date}: {self.client}"
+
     def info(self):
         """Информация о заказе авто."""
         return (
@@ -74,3 +78,5 @@ class Order:
             f"{self.product.brand} {self.product.model} × {self.quantity} шт. "
             f"(На сумму: {self.total()} руб.)"
         )
+    
+
