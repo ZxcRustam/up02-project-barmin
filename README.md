@@ -3,7 +3,7 @@
 # Проект Автосалон Вариант 22 (На гитхабе)
 
 
-**Автор:** <Barmin Rustam>
+**Автор:** Бармин Рустам
 **Группа:** 3ИП1-24
 **GitHub:** <ZxcRustam>
 **Репозиторий:** <https://github.com/ZxcRustam/up02-project-barmin>
