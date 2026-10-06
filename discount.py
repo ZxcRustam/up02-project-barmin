@@ -39,8 +39,11 @@ def has_orders_in_previous_month(car_id, date):
         "WHERE товар_id = ? AND дата BETWEEN ? AND ?",
         (car_id, start, end)
     )
-    count = cur.fetchone()[0]
+    row = cur.fetchone()
     conn.close()
+    
+    # Безопасная проверка: если база вернула данные, берем число, иначе 0
+    count = row[0] if row else 0
     return count > 0
 
 
@@ -70,6 +73,6 @@ if __name__ == "__main__":
     price_honda = calculate_price_with_discount(1, 1800000, test_date)
     print(f"Honda Civic (были продажи): {price_honda} руб. (Базовая: 1800000)")
     
-    # Volkswagen Tiguan (id=4) НЕ покупали в сентябре -> должна быть скидка 25%
+    # Volkswagen Tiguan (id=4) НЕ покупали в原始 сентябре -> должна быть скидка 25%
     price_vw = calculate_price_with_discount(4, 3500000, test_date)
     print(f"VW Tiguan (не было продаж, скидка 25%): {price_vw} руб. (Базовая: 3500000)")
