@@ -18,7 +18,7 @@ class Product:
         self.photo = photo
 
     def is_available(self):
-        """Возвращает True, если автомобиль есть в наличии."""
+        """Товар доступен для заказа?"""
         return self.quantity > 0
 
     def total(self):
@@ -78,5 +78,3 @@ class Order:
             f"{self.product.brand} {self.product.model} × {self.quantity} шт. "
             f"(На сумму: {self.total()} руб.)"
         )
-    
-
