@@ -5,7 +5,7 @@
 
 **Автор:** Бармин Рустам
 **Группа:** 3ИП1-24
-**GitHub:** <ZxcRustam>
+**GitHub:** ZxcRustam
 **Репозиторий:** <https://github.com/ZxcRustam/up02-project-barmin>
 **Дата:** 29.09.2026
 
