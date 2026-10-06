@@ -37,7 +37,7 @@ class Product:
 
     def discounted_price(self):
         """Цена со скидкой 25% (упрощённо для тренировки веток)."""
-        return self.price * 0.75
+        return self.price * 0.90   # изменено в main
 
     def indicator(self):
         """Индикатор «много/мало» (порог 3)."""
