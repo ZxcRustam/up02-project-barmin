@@ -15,19 +15,27 @@ _image_cache = {}
 def load_image(path, size=(100, 100)):
     """
     Загружает изображение с указанным размером.
-    
-    :param path: путь к файлу
-    :param size: (ширина, высота)
-    :return: ImageTk.PhotoImage или None
+    Если это заглушка, динамически добавляет текст 'Нет фото'.
     """
     try:
+        from PIL import ImageDraw, ImageFont
         if not os.path.exists(path):
             return None
         img = Image.open(path).resize(size)
+        
+        # Задание 1. Если загружается дефолтная заглушка, рисуем на ней текст
+        if "picture.png" in path:
+            draw = ImageDraw.Draw(img)
+            # Рисуем подложку под текст для читаемости
+            draw.rectangle([5, 75, 95, 95], fill="black")
+            # Пишем текст (используем стандартный шрифт)
+            draw.text((15, 80), "Нет фото", fill="white")
+            
         return ImageTk.PhotoImage(img)
     except Exception as e:
         print(f"Ошибка загрузки {path}: {e}")
         return None
+
 
 
 def load_image_proportional(path, max_size=(100, 100)):
