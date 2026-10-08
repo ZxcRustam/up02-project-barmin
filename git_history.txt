@@ -1,0 +1,30 @@
+* 4f8187a (HEAD -> main, origin/main, origin/HEAD) Добавлен important.txt, лог и tmp проигнорированы
+* 5b4d5d2 Добавлен .gitignore с правилами для Python
+* ca13dea ДЗ: работа с удалённым репозиторием
+* 9711e4d ДЗ: работа с удалённым репозиторием
+* 8daff78 ДЗ: работа с удалённым репозиторием
+*   af6f21c ДЗ: работа с удалённым репозиторием
+|\  
+| * 0e2a765 Update README.md
+| *   7e61d16 Merge pull request #2 from ZxcRustam/feature/homework-8
+| |\  
+| | * 211e7fb (origin/feature/homework-8, feature/homework-8) Добавлен файл homework_info.txt
+| |/  
+* / 1cb654d ДЗ: работа с удалённым репозиторием
+|/  
+*   0bcc4a5 Разрешён конфликт с GitHub
+|\  
+| * 92bd5de Update README.md
+* | 134c8d2 Локальное изменение README
+|/  
+*   6578f2c Merge pull request #1 from ZxcRustam/feature/remote-test
+|\  
+| * 0060aac (origin/feature/remote-test) Добавлен файл в ветке feature/remote-test
+|/  
+* 5ee5b83 Апдейт через гитхаб README.md
+* b4aeb9c Добавлен метод is_available
+*   bdf9849 ДЗ: работа с ветками и конфликтами
+|\  
+| * 70ec091 Изменена шапка в ветке conflict-2
+* | 2461b09 Изменена шапка в main иначе
+|/  

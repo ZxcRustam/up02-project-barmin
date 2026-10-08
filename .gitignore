@@ -42,3 +42,13 @@ credentials.txt
 # Временные файлы
 *.tmp
 *.bak
+
+# Домашнее задание: Расширенные правила игнорирования
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Файлы Excel
+~$*.xlsx
+
+# Файлы БД SQLite (журналы транзакций)
+*.db-journal
