@@ -1,71 +1,66 @@
-"""Модуль работы с ресурсами."""
+"""Модуль работы с ресурсами. Полная защита от ошибок кодирования текста и путей."""
 import os
+import io
+from pathlib import Path
 from PIL import Image, ImageTk
 
-
-# Пути к ресурсам
-PATH_PICTURE = "resources/picture.png"
-PATH_LOGO = "resources/logo.png"
-PATH_ICON = "resources/icon.ico"
-
-# Кэш изображений
-_image_cache = {}
+# Базовая директория проекта
+BASE_DIR = Path(__file__).resolve().parent
+PATH_PICTURE = BASE_DIR / "resources" / "picture.png"
+PATH_LOGO = BASE_DIR / "resources" / "logo.png"
+PATH_ICON = BASE_DIR / "resources" / "icon.ico"
 
 
-def load_image(path, size=(100, 100)):
-    """
-    Загружает изображение с указанным размером.
-    Если это заглушка, динамически добавляет текст 'Нет фото'.
-    """
+def load_image(path_obj, size=(100, 100)):
+    """Загружает изображение в виде байтов, обходя любые проблемы с кириллицей в путях."""
     try:
-        from PIL import ImageDraw, ImageFont
-        if not os.path.exists(path):
-            return None
-        img = Image.open(path).resize(size)
+        p = Path(path_obj)
+        sys_path = os.fsencode(str(p.resolve()))
         
-        # Задание 1. Если загружается дефолтная заглушка, рисуем на ней текст
-        if "picture.png" in path:
-            draw = ImageDraw.Draw(img)
-            # Рисуем подложку под текст для читаемости
-            draw.rectangle([5, 75, 95, 95], fill="black")
-            # Пишем текст (используем стандартный шрифт)
-            draw.text((15, 80), "Нет фото", fill="white")
+        if not os.path.exists(sys_path):
+            return None
+            
+        with open(sys_path, "rb") as f:
+            img_bytes = io.BytesIO(f.read())
+            img = Image.open(img_bytes).resize(size)
             
         return ImageTk.PhotoImage(img)
     except Exception as e:
-        print(f"Ошибка загрузки {path}: {e}")
+        print(f"Ошибка загрузки {path_obj}: {e}")
         return None
 
 
-
-def load_image_proportional(path, max_size=(100, 100)):
-    """
-    Загружает изображение с сохранением пропорций.
-    Используется для логотипа.
-    
-    :param path: путь к файлу
-    :param max_size: максимальные (ширина, высота)
-    :return: ImageTk.PhotoImage или None
-    """
+def load_image_proportional(path_obj, max_size=(100, 100)):
+    """Загружает изображение с сохранением пропорций (для логотипа)."""
     try:
-        if not os.path.exists(path):
+        p = Path(path_obj)
+        sys_path = os.fsencode(str(p.resolve()))
+        
+        if not os.path.exists(sys_path):
             return None
-        img = Image.open(path)
-        img.thumbnail(max_size)   # сохраняет пропорции!
+            
+        with open(sys_path, "rb") as f:
+            img_bytes = io.BytesIO(f.read())
+            img = Image.open(img_bytes)
+            img.thumbnail(max_size)
+            
         return ImageTk.PhotoImage(img)
     except Exception as e:
-        print(f"Ошибка загрузки {path}: {e}")
+        print(f"Ошибка загрузки {path_obj}: {e}")
         return None
 
 
 def get_product_image(image_path, size=(100, 100)):
-    """
-    Возвращает картинку товара или заглушку.
-    
-    :param image_path: путь к изображению товара
-    :param size: (ширина, высота)
-    :return: ImageTk.PhotoImage
-    """
-    if not image_path or not os.path.exists(image_path):
+    """Возвращает картинку товара или заглушку."""
+    if not image_path:
         return load_image(PATH_PICTURE, size)
-    return load_image(image_path, size)
+        
+    p = Path(image_path)
+    if not p.is_absolute():
+        p = BASE_DIR / image_path
+        
+    sys_path = os.fsencode(str(p.resolve()))
+    if not os.path.exists(sys_path):
+        return load_image(PATH_PICTURE, size)
+        
+    return load_image(p, size)
