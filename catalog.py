@@ -76,8 +76,8 @@ def _add_text_info(card, product_obj, bg_color, qty):
     # Марка (Бренд)
     _add_label(text_frame, f"Марка: {brand}", bg_color)
     
-    # Количество
-    _add_label(text_frame, f"Количество: {product_obj.indicator()} ({qty} шт.)", bg_color)
+    # Количество (ИЗМЕНЕНО: вызываем локальную функцию _indicator(qty))
+    _add_label(text_frame, f"Количество: {_indicator(qty)} ({qty} шт.)", bg_color)
     
     # Цена со скидкой (Красивое форматирование больших цен > 1 000 000)
     _add_label(text_frame, f"Цена со скидкой: {discounted_price:,} руб.".replace(",", " "),
@@ -92,3 +92,14 @@ def _add_label(parent, text, bg_color, bold=False, size=FONT_SIZE_NORMAL, align=
     """Универсальная подфункция добавления текстовых меток."""
     tk_anchor = tk.W if align == "w" else (tk.E if align == "e" else tk.CENTER)
     tk.Label(parent, text=text, font=font(size, bold=bold), bg=bg_color, anchor=tk_anchor).pack(fill="x")
+
+
+# Задание 4.5. Новая функция-индикатор
+def _indicator(qty):
+    """
+    Индикатор «много/мало» (порог 5).
+    
+    :param qty: количество товара
+    :return: «много» или «мало»
+    """
+    return "много" if qty > 5 else "мало"
