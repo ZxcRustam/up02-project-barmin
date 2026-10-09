@@ -23,7 +23,6 @@ def add_order_to_db(client, date=None):
         conn = get_connection()
         cur = conn.cursor()
 
-        # В новой структуре пишем только дату и ФИО клиента
         cur.execute(
             "INSERT INTO Заказ (дата, клиент) VALUES (?, ?)",
             (date, str(client))
@@ -38,7 +37,6 @@ def add_order_to_db(client, date=None):
         return None
 
 
-
 def update_product_quantity(product_id, new_quantity):
     """
     Обновляет количество товара в БД.
@@ -46,17 +44,52 @@ def update_product_quantity(product_id, new_quantity):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
-        # Исправлено: возвращаем имя колонки id для таблицы Товар
         cur.execute(
             "UPDATE Товар SET количество = ? WHERE id = ?",
             (int(new_quantity), int(product_id))
         )
-        
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"[DEBUG] Ошибка обновления количества товара: {e}")
+
+
+def decrease_product_quantity(product_id, quantity):
+    """
+    Уменьшает количество товара на складе (Задание 4.4).
+    :param product_id: id товара
+    :param quantity: на сколько уменьшить
+    :return: True при успехе, False при ошибке
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        # Проверяем, что товара достаточно
+        cur.execute("SELECT количество FROM Товар WHERE id = ?", (int(product_id),))
+        row = cur.fetchone()
+        if not row:
+            return False
+
+        current = row[0]
+        if current < quantity:
+            return False
+
+        # Уменьшаем (Вариант 2 — атомарное вычитание)
+        cur.execute(
+            "UPDATE Товар SET количество = количество - ? WHERE id = ?",
+            (int(quantity), int(product_id))
+        )
+        conn.commit()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка обновления: {e}")
+        return False
+
+    finally:
+        conn.close()
 
 
 def get_last_order_id():
@@ -66,10 +99,8 @@ def get_last_order_id():
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
         cur.execute("SELECT MAX(id) FROM Заказ")
         row = cur.fetchone()
-        
         conn.close()
         return row[0] if row and row[0] is not None else None
     except Exception as e:
@@ -84,7 +115,6 @@ def get_product_quantity(product_id):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        # Исправлено: возвращаем имя колонки id для таблицы Товар
         cur.execute("SELECT количество FROM Товар WHERE id = ?", (product_id,))
         row = cur.fetchone()
         conn.close()
@@ -92,21 +122,15 @@ def get_product_quantity(product_id):
     except Exception as e:
         print(f"[DEBUG] Ошибка получения количества товара: {e}")
         return 0
+
+
 def add_order_item(order_id, product_id, size, quantity, price):
     """
     Добавляет позицию в состав заказа (Задание 6.2).
-    :param order_id: id заказа
-    :param product_id: id товара
-    :param size: комплектация (размер) автомобиля
-    :param quantity: количество
-    :param price: цена за единицу на момент заказа
-    :return: id позиции или None
     """
     try:
         conn = get_connection()
         cur = conn.cursor()
-
-        # Адаптировано под Вариант 22 (комплектация вместо размера)
         cur.execute(
             "INSERT INTO Состав_заказа "
             "(заказ_id, товар_id, комплектация, количество, цена) "
@@ -116,7 +140,6 @@ def add_order_item(order_id, product_id, size, quantity, price):
         conn.commit()
         item_id = cur.lastrowid
         conn.close()
-
         return item_id
     except Exception as e:
         print(f"[DEBUG] Ошибка добавления позиции в Состав_заказа: {e}")
@@ -125,7 +148,7 @@ def add_order_item(order_id, product_id, size, quantity, price):
 
 def create_order(client, items):
     """
-    Создаёт заказ с несколькими позициями (Задание 6.4).
+    Создаёт заказ с несколькими позициями (Задание 5.3).
     :param client: ФИО клиента
     :param items: список кортежей (product_id, size, quantity, price)
     :return: id заказа или None
@@ -142,23 +165,34 @@ def create_order(client, items):
         )
         order_id = cur.lastrowid
 
-        # 2. Добавляем позиции
+        # 2. Добавляем позиции И уменьшаем остатки
         for product_id, size, quantity, price in items:
-            # Адаптировано под Вариант 22 (комплектация вместо размера)
+            # Проверяем наличие
+            cur.execute("SELECT количество FROM Товар WHERE id = ?", (int(product_id),))
+            row = cur.fetchone()
+            if not row or row[0] < quantity:
+                raise ValueError(f"Недостаточно товара id={product_id}")
+
+            # Добавляем позицию в Состав_заказа (комплектация вместо размера для Варианта 22)
             cur.execute(
                 "INSERT INTO Состав_заказа "
-                "(заказ_id, товар_id, комплектация, количество, price) "
-                "VALUES (?, ?, ?, ?, ?)" if "price" in [col[1] for col in cur.execute("PRAGMA table_info(Состав_заказа)").fetchall()] else
-                "INSERT INTO Состав_заказа (заказ_id, товар_id, комплектация, количество, цена) VALUES (?, ?, ?, ?, ?)",
+                "(заказ_id, товар_id, комплектация, количество, цена) "
+                "VALUES (?, ?, ?, ?, ?)",
                 (order_id, int(product_id), str(size), int(quantity), float(price))
             )
 
-        # 3. Фиксируем изменения, если всё прошло без ошибок
+            # Уменьшаем остаток атомарно
+            cur.execute(
+                "UPDATE Товар SET количество = количество - ? WHERE id = ?",
+                (int(quantity), int(product_id))
+            )
+
+        # 3. Фиксируем ВСЁ, только если все шаги прошли успешно
         conn.commit()
         return order_id
 
     except Exception as e:
-        # Откат транзакции при любой ошибке
+        # Откатываем ВСЁ назад, база остается нетронутой
         conn.rollback()
         print(f"Ошибка создания заказа: {e}")
         return None
