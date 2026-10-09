@@ -189,9 +189,10 @@ class ViewForm:
             
             # Считываем выбранную из выпадающего списка комплектацию
             chosen_size = self.size_var.get()
-            client_name = f"Иванов Иван ({chosen_size})"
+            client_name = f"Иванов Иван Иванович ({chosen_size})"
             
-            add_order_to_db(client_name, product_id, order_qty)
+            # Обновлено под Задание 5.2 и 5.3: передаем только ФИО клиента
+            add_order_to_db(client_name)
             update_product_quantity(product_id, new_qty)
             
             messagebox.showinfo("Успех", f"Заказ оформлен! Выбрана комплектация: {chosen_size}")
