@@ -13,6 +13,9 @@ from models import Product
 from catalog import create_product_card
 from resources import load_image_proportional, PATH_LOGO, PATH_ICON
 
+# Задание 6.2. Импорт безопасного вызова обработчика ошибок
+from error_handler import safe_call
+
 
 def set_app_icon(root, icon_path):
     """Устанавливает иконку приложения кроссплатформенно."""
@@ -83,29 +86,39 @@ class CatalogWindow:
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-    def load_products(self):
-        """Прямая загрузка автомобилей из базы Варианта 22 и создание объектов Product."""
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM Товар")
-            rows = cur.fetchall()
-            conn.close()
+    def _fetch_products_from_db(self):
+        """Вспомогательный метод для прямого извлечения сырых строк из БД."""
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM Товар")
+        rows = cur.fetchall()
+        conn.close()
+        return rows
 
-            for r in rows:
+    def load_products(self):
+        """Загружает товары с обработкой ошибок через safe_call (Задание 6.2)."""
+        # Безопасно вытаскиваем строки из базы данных
+        rows = safe_call(self._fetch_products_from_db)
+        if rows is None:
+            rows = []
+
+        # Безопасно обрабатываем каждую строку и строим интерфейс карточек
+        for r in rows:
+            try:
+                # Фикс индексов и типов для Варианта 22: Автомобили
                 product_obj = Product(
-                    product_id=int(r[0]),
-                    brand=str(r[1]),
-                    model=str(r[2]),
-                    year=int(r[3]),
-                    price=int(r[4]),
-                    quantity=int(r[5]),
-                    photo=str(r[6]) if r[6] else ""
+                    product_id=int(r[0]) if r[0] is not None else 0,
+                    brand=str(r[1]) if r[1] else "[Без марки]",
+                    model=str(r[2]) if r[2] else "[Без модели]",
+                    year=int(r[3]) if r[3] is not None else 0,
+                    price=int(r[4]) if r[4] is not None else 0,
+                    quantity=int(r[5]) if r[5] is not None else 0,
+                    photo=str(r[6]) if len(r) > 6 and r[6] else ""
                 )
-                create_product_card(self.catalog_frame, product_obj)
-        except Exception as e:
-            tk.Label(self.catalog_frame, text=f"Ошибка загрузки БД: {e}", 
-                     fg="red", bg=COLOR_MAIN_BG, font=font(FONT_SIZE_TITLE)).pack(pady=20)
+                # Оборачиваем создание карточки в safe_call по ТЗ
+                safe_call(create_product_card, self.catalog_frame, product_obj)
+            except Exception as e:
+                print(f"[DEBUG] Ошибка парсинга строки продукта: {e}")
 
     def run(self):
         self.root.mainloop()

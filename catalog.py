@@ -26,12 +26,30 @@ def create_product_card(parent, product_obj):
     separator = tk.Frame(card_container, height=2, bg="gray70")
     separator.pack(fill="x", pady=(5, 0))
 
+    # === Задание 6.1. Привязка клика для открытия карточки автомобиля ===
+    def _open_view(event):
+        from view_form import ViewForm
+        ViewForm(parent, product_obj)
+
+    # Привязываем клик к самому контейнеру карточки
+    card.bind("<Button-1>", _open_view)
+    
+    # Привязываем клик ко всем вложенным элементам (картинка, текст), чтобы клик работал везде
+    for child in card.winfo_children():
+        child.bind("<Button-1>", _open_view)
+        for sub_child in child.winfo_children():
+            sub_child.bind("<Button-1>", _open_view)
+
     return card_container
 
 
 def _get_card_color(qty):
     """Возвращает цвет фона карточки."""
-    return COLOR_HIGHLIGHT if qty <= 3 else COLOR_MAIN_BG
+    try:
+        numeric_qty = int(qty) if qty is not None else 0
+    except (ValueError, TypeError):
+        numeric_qty = 0
+    return COLOR_HIGHLIGHT if numeric_qty <= 3 else COLOR_MAIN_BG
 
 
 def _add_image(card, product_obj, bg_color):
@@ -76,7 +94,7 @@ def _add_text_info(card, product_obj, bg_color, qty):
     # Марка (Бренд)
     _add_label(text_frame, f"Марка: {brand}", bg_color)
     
-    # Количество (ИЗМЕНЕНО: вызываем локальную функцию _indicator(qty))
+    # Количество с использованием локальной защищенной функции
     _add_label(text_frame, f"Количество: {_indicator(qty)} ({qty} шт.)", bg_color)
     
     # Цена со скидкой (Красивое форматирование больших цен > 1 000 000)
@@ -94,16 +112,14 @@ def _add_label(parent, text, bg_color, bold=False, size=FONT_SIZE_NORMAL, align=
     tk.Label(parent, text=text, font=font(size, bold=bold), bg=bg_color, anchor=tk_anchor).pack(fill="x")
 
 
-# Задание 4.5. Новая функция-индикатор
+# Задание 4.5 + ДЗ. Новая защищенная функция-индикатор
 def _indicator(qty):
     """
     Индикатор «много/мало» (порог 5) с защитой от некорректных типов.
     """
     try:
-        # Пробуем привести к числу на случай, если пришла строка или дробь
         numeric_qty = float(qty) if qty is not None else 0
     except (ValueError, TypeError):
         numeric_qty = 0
 
     return "много" if numeric_qty > 5 else "мало"
-
