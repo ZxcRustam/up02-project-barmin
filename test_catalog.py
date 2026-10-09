@@ -58,15 +58,29 @@ def test_quantity_not_negative():
     return True
 
 
-# Задание 6.6. Дополнительный тест проверки наименований (моделей)
 def test_names_not_empty():
-    """Проверяет, что у всех товаров есть название."""
+    """
+    Проверяет, что у всех товаров есть название (модель).
+    """
     products = db.get_all_products()
     for p in products:
-        if not p.model:   # пустое или None
+        if not p.model:
             print(f"❌ Товар id={getattr(p, 'id', 'unknown')}: пустое название")
             return False
     return True
+
+
+# Домашнее задание 2: тест проверки картинок
+def test_at_least_one_image():
+    """
+    Проверяет, что хотя бы у одного товара есть изображение.
+    """
+    products = db.get_all_products()
+    for p in products:
+        if hasattr(p, 'photo') and p.photo and p.photo.strip():
+            return True
+    print("❌ Ни у одного товара нет изображения")
+    return False
 
 
 def run_all_tests():
@@ -79,7 +93,8 @@ def run_all_tests():
         ("У всех товаров нужные поля", test_product_fields),
         ("Все цены — числа", test_prices_are_numbers),
         ("Количество не отрицательное", test_quantity_not_negative),
-        ("Названия не пустые", test_names_not_empty),  # Добавлено по заданию 6.6
+        ("Названия не пустые", test_names_not_empty),
+        ("Хотя бы у одного товара есть фото", test_at_least_one_image),
     ]
 
     print("=" * 60)

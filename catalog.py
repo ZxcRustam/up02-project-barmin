@@ -97,9 +97,13 @@ def _add_label(parent, text, bg_color, bold=False, size=FONT_SIZE_NORMAL, align=
 # Задание 4.5. Новая функция-индикатор
 def _indicator(qty):
     """
-    Индикатор «много/мало» (порог 5).
-    
-    :param qty: количество товара
-    :return: «много» или «мало»
+    Индикатор «много/мало» (порог 5) с защитой от некорректных типов.
     """
-    return "много" if qty > 5 else "мало"
+    try:
+        # Пробуем привести к числу на случай, если пришла строка или дробь
+        numeric_qty = float(qty) if qty is not None else 0
+    except (ValueError, TypeError):
+        numeric_qty = 0
+
+    return "много" if numeric_qty > 5 else "мало"
+
