@@ -8,7 +8,7 @@ from tkinter import ttk
 from config import DB_PATH, APP_TITLE
 
 # Задание 7.4. Официальный импорт стилей КИМ
-from styles import COLOR_MAIN_BG, COLOR_SECONDARY_BG, FONT_SIZE_TITLE, font
+from styles import COLOR_MAIN_BG, COLOR_SECONDARY_BG, COLOR_ACCENT, FONT_SIZE_TITLE, FONT_SIZE_NORMAL, font
 from models import Product
 from catalog import create_product_card
 from resources import load_image_proportional, PATH_LOGO, PATH_ICON
@@ -38,7 +38,7 @@ class CatalogWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(APP_TITLE)
-        self.root.geometry("900x700")
+        self.root.geometry("950x700")  # Немного расширили окно под кнопку заказов
         
         # Задание 7.6. Устанавливаем основной фон окна из КИМ
         self.root.configure(bg=COLOR_MAIN_BG)
@@ -65,7 +65,14 @@ class CatalogWindow:
         # Заголовок по центру (Задание 7.5. Шрифт Calibri TITLE через font())
         tk.Label(header, text="КАТАЛОГ АВТОМОБИЛЕЙ",
                  font=font(FONT_SIZE_TITLE, bold=True),
-                 bg=COLOR_SECONDARY_BG).pack(expand=True)
+                 bg=COLOR_SECONDARY_BG).pack(side="left", expand=True, padx=(50, 0))
+
+        # === Задание 5.2 и 5.3. Кнопка "Заказы" в правой части шапки каталога ===
+        tk.Button(header, text="Заказы", command=self.open_orders,
+                  bg=COLOR_ACCENT, fg="white",
+                  font=font(FONT_SIZE_NORMAL, bold=True),
+                  relief="flat", cursor="hand2",
+                  padx=15, pady=5).pack(side="right", padx=20, pady=20)
 
         # Область с прокруткой (Canvas + Scrollbar)
         self.canvas = tk.Canvas(self.root, bg=COLOR_MAIN_BG, highlightthickness=0)
@@ -85,6 +92,11 @@ class CatalogWindow:
         
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+    def open_orders(self):
+        """Открывает окно списка заказов (Задание 5.2)."""
+        from orders_window import OrdersWindow
+        OrdersWindow(self.root)
 
     def _fetch_products_from_db(self):
         """Вспомогательный метод для прямого извлечения сырых строк из БД."""

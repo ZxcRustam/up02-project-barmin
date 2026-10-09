@@ -146,6 +146,23 @@ def add_order_item(order_id, product_id, size, quantity, price):
         return None
 
 
+def get_all_orders():
+    """
+    Возвращает список всех заказов (Задание 4.3).
+    :return: список кортежей (id, дата, клиент)
+    """
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, дата, клиент FROM Заказ ORDER BY id DESC")
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[DEBUG] Ошибка получения всех заказов: {e}")
+        return []
+
+
 def create_order(client, items):
     """
     Создаёт заказ с несколькими позициями (Задание 5.3).
@@ -199,3 +216,41 @@ def create_order(client, items):
 
     finally:
         conn.close()
+        
+def get_order_items(order_id):
+    """
+    Возвращает состав заказа (Универсальная версия для Варианта 22).
+    """
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # 1. Сначала пробуем найти позиции в таблице Состав_заказа
+        cur.execute("""
+            SELECT Состав_заказа.id, Товар.модель,
+                   Состав_заказа.комплектация, Состав_заказа.количество,
+                   Состав_заказа.цена
+            FROM Состав_заказа
+            JOIN Товар ON Состав_заказа.товар_id = Товар.id
+            WHERE Состав_заказа.заказ_id = ?
+        """, (int(order_id),))
+        rows = cur.fetchall()
+        
+        # 2. Если в Состав_заказа пусто (как для заказов 7, 8, 9), берем данные напрямую из таблицы Заказ!
+        if not rows:
+            cur.execute("""
+                SELECT Заказ.id, Товар.модель,
+                       'Базовая' AS комплектация, Заказ.количество,
+                       Товар.цена
+                FROM Заказ
+                JOIN Товар ON Заказ.товар_id = Товар.id
+                WHERE Заказ.id = ? AND Заказ.товар_id IS NOT NULL
+            """, (int(order_id),))
+            rows = cur.fetchall()
+            
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[DEBUG] Ошибка получения состава заказа: {e}")
+        return []
+
