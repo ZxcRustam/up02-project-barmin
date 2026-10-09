@@ -95,6 +95,12 @@ class CatalogWindow:
         conn.close()
         return rows
 
+    def refresh_catalog(self):
+        """Обновляет содержимое витрины каталога после покупки (Задание 5.6)."""
+        for widget in self.catalog_frame.winfo_children():
+            widget.destroy()
+        self.load_products()
+
     def load_products(self):
         """Загружает товары с обработкой ошибок через safe_call (Задание 6.2)."""
         # Безопасно вытаскиваем строки из базы данных
@@ -115,8 +121,8 @@ class CatalogWindow:
                     quantity=int(r[5]) if r[5] is not None else 0,
                     photo=str(r[6]) if len(r) > 6 and r[6] else ""
                 )
-                # Оборачиваем создание карточки в safe_call по ТЗ
-                safe_call(create_product_card, self.catalog_frame, product_obj)
+                # Оборачиваем создание карточки в safe_call и передаем рефреш (Задание 5.6)
+                safe_call(create_product_card, self.catalog_frame, product_obj, refresh=self.refresh_catalog)
             except Exception as e:
                 print(f"[DEBUG] Ошибка парсинга строки продукта: {e}")
 

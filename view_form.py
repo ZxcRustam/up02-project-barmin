@@ -10,6 +10,13 @@ from resources import load_image, get_product_image
 # Импортируем валидатор для Домашнего задания
 from error_handler import validate_positive_int
 
+# Задание 5.4. Импорт функций управления заказами
+from order_manager import (
+    add_order_to_db, 
+    update_product_quantity, 
+    get_product_quantity
+)
+
 
 class ViewForm:
     """
@@ -24,7 +31,7 @@ class ViewForm:
         
         :param parent: родительское окно
         :param product: объект Product с данными автомобиля
-        :param on_add_to_order: callback для добавления в заказ
+        :param on_add_to_order: callback для обновления каталога (refresh)
         """
         self.product = product
         self.on_add_to_order = on_add_to_order
@@ -142,36 +149,52 @@ class ViewForm:
         lbl_val.pack(side="left", fill="x", expand=True)
     
     def add_to_order(self):
-        """Обработчик кнопки «Добавить в заказ» с валидацией ввода из ДЗ (Задание 4.4)."""
+        """Обработчик кнопки «Добавить в заказ» с валидацией ввода из ДЗ (Задание 5.2 и 5.3)."""
         if not self.product:
             messagebox.showerror("Ошибка", "Товар не выбран")
             return
 
-        # ДЗ Задание 2: Извлекаем ввод пользователя и прогоняем через валидатор
-        user_input = self.entry_qty.get().strip()
-        is_valid, result_value = validate_positive_int(user_input, "Количество для заказа")
-        
-        if not is_valid:
-            # Превращаем текст ошибки строго в строку, чтобы Pylance не ругался
-            messagebox.showerror("Ошибка валидации", str(result_value))
-            return
-
-        # Гарантируем для Pylance, что здесь пришло строго число int
-        order_qty = int(result_value)
-
-        # Проверяем, есть ли такое количество машин на складе
-        available_qty = getattr(self.product, 'quantity', 0)
-        if order_qty > available_qty:
-            messagebox.showerror("Ошибка остатка", f"Нельзя заказать {order_qty} шт. В наличии только {available_qty} шт.")
-            return
-
-        if not self.on_add_to_order:
-            messagebox.showinfo("Информация", f"Товар добавлен в заказ (Тест валидации: успешно, количество = {order_qty})")
-            return
-            
         try:
-            # Передаем управление callback-функции
-            self.on_add_to_order(self.product, order_qty)
-            messagebox.showinfo("Успех", "Товар добавлен в заказ")
+            # Извлекаем ввод и валидируем его
+            user_input = self.entry_qty.get().strip()
+            is_valid, result_value = validate_positive_int(user_input, "Количество для заказа")
+            
+            if not is_valid:
+                messagebox.showerror("Ошибка валидации", str(result_value))
+                return
+
+            order_qty = int(result_value)
+            
+            # ДВУХУРОВНЕВЫЙ ФИКС БАГА С ID: Сначала ищем 'id', затем 'product_id'
+            product_id = getattr(self.product, 'id', None)
+            if product_id is None:
+                product_id = getattr(self.product, 'product_id', 0)
+            
+            # Получаем точный остаток из базы данных по исправленному ID
+            current_qty = get_product_quantity(product_id)
+            
+            if current_qty < 1:
+                messagebox.showwarning("Предупреждение", "Товар закончился")
+                return
+                
+            if order_qty > current_qty:
+                messagebox.showerror("Ошибка остатка", f"Недостаточно товара. В наличии: {current_qty} шт.")
+                return
+            
+            # Рассчитываем новый остаток для склада
+            new_qty = current_qty - order_qty
+            
+            # Фиксируем покупку в БД
+            add_order_to_db("Иванов Иван Иванович", product_id, order_qty)
+            update_product_quantity(product_id, new_qty)
+            
+            messagebox.showinfo("Успех", "Заказ оформлен")
+            
+            # Вызываем callback обновления главной витрины (refresh)
+            if self.on_add_to_order:
+                self.on_add_to_order()
+                
+            self.window.destroy()  # Закрываем карточку
+            
         except Exception as e:
-            messagebox.showerror("Ошибка заказа", f"Не удалось добавить товар:\n{e}")
+            messagebox.showerror("Ошибка", f"Не удалось оформить заказ:\n{e}")

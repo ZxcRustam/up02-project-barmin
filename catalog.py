@@ -9,7 +9,7 @@ from styles import (
 )
 
 
-def create_product_card(parent, product_obj):
+def create_product_card(parent, product_obj, refresh=None):
     """Создаёт карточку автомобиля по макету с нижней линией-разделителем."""
     qty = product_obj.quantity
     bg_color = _get_card_color(qty)
@@ -26,15 +26,14 @@ def create_product_card(parent, product_obj):
     separator = tk.Frame(card_container, height=2, bg="gray70")
     separator.pack(fill="x", pady=(5, 0))
 
-    # === Задание 6.1. Привязка клика для открытия карточки автомобиля ===
+    # === Задание 5.5 и 5.7. Проброс callback refresh для обновления ===
     def _open_view(event):
         from view_form import ViewForm
-        ViewForm(parent, product_obj)
+        # Передаем refresh как аргумент on_add_to_order формы просмотра
+        ViewForm(parent, product_obj, on_add_to_order=refresh)
 
-    # Привязываем клик к самому контейнеру карточки
+    # Привязываем клики
     card.bind("<Button-1>", _open_view)
-    
-    # Привязываем клик ко всем вложенным элементам (картинка, текст), чтобы клик работал везде
     for child in card.winfo_children():
         child.bind("<Button-1>", _open_view)
         for sub_child in child.winfo_children():
