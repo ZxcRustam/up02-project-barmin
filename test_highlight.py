@@ -1,10 +1,10 @@
-"""Тестирование подсветки товаров."""
+"""Тестирование подсветки товаров с учетом ДЗ."""
 from catalog import _get_card_color
 from styles import COLOR_HIGHLIGHT, COLOR_MAIN_BG
 
 
 def test_highlight():
-    """Прогон тестов для подсветки."""
+    """Прогон тестов для подсветки (расширенная версия)."""
     test_cases = [
         # (qty, expected_color, comment)
         (10, COLOR_MAIN_BG, "10 > 3 — нет подсветки"),
@@ -14,10 +14,14 @@ def test_highlight():
         (2, COLOR_HIGHLIGHT, "2 ≤ 3 — подсветка"),
         (1, COLOR_HIGHLIGHT, "1 ≤ 3 — подсветка"),
         (0, COLOR_HIGHLIGHT, "0 ≤ 3 — подсветка"),
+        # Домашнее задание: 3 новых теста
+        (1000, COLOR_MAIN_BG, "ДЗ: большое число 1000"),
+        (-1, COLOR_HIGHLIGHT, "ДЗ: отрицательное -1"),
+        (3, COLOR_HIGHLIGHT, "ДЗ: повтор границы 3"),
     ]
 
     print("=" * 70)
-    print("ТЕСТИРОВАНИЕ ПОДСВЕТКИ")
+    print("ТЕСТИРОВАНИЕ ПОДСВЕТКИ (РАСШИРЕННОЕ)")
     print("=" * 70)
 
     passed = 0
