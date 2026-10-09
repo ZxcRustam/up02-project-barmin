@@ -1,4 +1,4 @@
-"""Форма просмотра товара с расширенными полями ввода из ДЗ."""
+"""Форма просмотра товара с выбором количества и комплектации (Размера) из КИМ."""
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -7,10 +7,9 @@ from styles import (
     FONT_SIZE_NORMAL, FONT_SIZE_HEADER, FONT_SIZE_TITLE, font
 )
 from resources import load_image, get_product_image
-# Импортируем валидатор для Домашнего задания
 from error_handler import validate_positive_int
 
-# Задание 5.4. Импорт функций управления заказами
+# Импортируем только менеджер заказов
 from order_manager import (
     add_order_to_db, 
     update_product_quantity, 
@@ -19,19 +18,11 @@ from order_manager import (
 
 
 class ViewForm:
-    """
-    Форма просмотра выбранного товара.
-    
-    Открывается при клике на карточку в каталоге.
-    """
+    """Форма просмотра выбранного товара."""
     
     def __init__(self, parent, product, on_add_to_order=None):
         """
         Инициализация формы.
-        
-        :param parent: родительское окно
-        :param product: объект Product с данными автомобиля
-        :param on_add_to_order: callback для обновления каталога (refresh)
         """
         self.product = product
         self.on_add_to_order = on_add_to_order
@@ -40,14 +31,14 @@ class ViewForm:
         
         model_name = getattr(product, 'model', '[Без модели]')
         self.window.title(f"Просмотр — {model_name}")
-        self.window.geometry("700x650")  # Увеличили высоту под новые поля ДЗ
+        self.window.geometry("700x700")  # Увеличили высоту под новые фреймы КИМ
         self.window.configure(bg=COLOR_MAIN_BG)
         
         self.build_ui()
     
     def build_ui(self):
         """Строит интерфейс формы."""
-        # Шапка — ГОТОВО
+        # Шапка
         header = tk.Frame(self.window, bg=COLOR_SECONDARY_BG, height=60)
         header.pack(fill="x")
         header.pack_propagate(False)
@@ -56,11 +47,11 @@ class ViewForm:
                  font=font(FONT_SIZE_TITLE, bold=True),
                  bg=COLOR_SECONDARY_BG).pack(pady=15)
         
-        # Основная область — ГОТОВО
+        # Основная область
         main = tk.Frame(self.window, bg=COLOR_MAIN_BG)
         main.pack(fill="both", expand=True, padx=20, pady=10)
         
-        # Изображение — ГОТОВО
+        # Изображение
         img_frame = tk.Frame(main, bg=COLOR_MAIN_BG)
         img_frame.pack(side="left", padx=10)
         
@@ -75,7 +66,7 @@ class ViewForm:
         else:
             tk.Label(img_frame, text="[НЕТ ФОТО]", bg=COLOR_MAIN_BG, width=20, height=10, relief="solid").pack()
         
-        # Информация — Задание 4.2
+        # Информация
         info_frame = tk.Frame(main, bg=COLOR_MAIN_BG)
         info_frame.pack(side="left", fill="both", expand=True, padx=20)
         
@@ -91,29 +82,44 @@ class ViewForm:
         qty_val = getattr(self.product, 'quantity', 0)
         qty = f"{qty_val} шт."
 
-        # Добавление полей через метод _add_field
         self._add_field(info_frame, "Марка", brand)
         self._add_field(info_frame, "Модель", model)
         self._add_field(info_frame, "Год выпуска", year)
         self._add_field(info_frame, "Цена", price)
         self._add_field(info_frame, "В наличии", qty)
         
-        # ДЗ Задание 1. Поле Описание (Проверяем наличие в объекте, если нет — пишем заглушку)
         description = getattr(self.product, 'description', "Официальный дилерский автомобиль. Комплектация базовая.")
         self._add_field(info_frame, "Описание", description)
 
-        # ДЗ Задание 2. Поле ввода количества для заказа
-        input_row = tk.Frame(info_frame, bg=COLOR_MAIN_BG)
-        input_row.pack(fill="x", pady=10)
+        # === Задание 4.2. Поле ввода количества через StringVar ===
+        qty_frame = tk.Frame(info_frame, bg=COLOR_MAIN_BG)
+        qty_frame.pack(fill="x", pady=10)
+
+        tk.Label(qty_frame, text="Количество:", font=font(FONT_SIZE_NORMAL),
+                 bg=COLOR_MAIN_BG).pack(side="left", padx=5)
+
+        self.qty_var = tk.StringVar(value="1")
+        qty_entry = tk.Entry(qty_frame, textvariable=self.qty_var, width=5,
+                             font=font(FONT_SIZE_NORMAL), relief="solid")
+        qty_entry.pack(side="left", padx=5)
+
+        # === Задание 4.2. Выбор размера (комплектации автомобиля для Варианта 22) ===
+        size_frame = tk.Frame(info_frame, bg=COLOR_MAIN_BG)
+        size_frame.pack(fill="x", pady=10)
+
+        tk.Label(size_frame, text="Комплектация:", font=font(FONT_SIZE_NORMAL),
+                 bg=COLOR_MAIN_BG).pack(side="left", padx=5)
+
+        # Передаем фиксированный список опций комплектации вместо обращения к БД
+        sizes = ["Базовая", "Комфорт", "Люкс"]
+
+        self.size_var = tk.StringVar(value=sizes[0])
+        size_combo = ttk.Combobox(size_frame, textvariable=self.size_var,
+                                  values=sizes, state="readonly", width=12,
+                                  font=font(FONT_SIZE_NORMAL))
+        size_combo.pack(side="left", padx=5)
         
-        tk.Label(input_row, text="Заказать (шт):", font=font(FONT_SIZE_NORMAL, bold=True),
-                 bg=COLOR_MAIN_BG, anchor="w", width=15).pack(side="left")
-        
-        self.entry_qty = tk.Entry(input_row, font=font(FONT_SIZE_NORMAL), width=5, relief="solid")
-        self.entry_qty.insert(0, "1")  # По умолчанию ставим 1 шт.
-        self.entry_qty.pack(side="left")
-        
-        # Кнопки — Задание 4.3
+        # Кнопки
         btn_frame = tk.Frame(self.window, bg=COLOR_MAIN_BG)
         btn_frame.pack(fill="x", pady=20)
         
@@ -132,7 +138,7 @@ class ViewForm:
         btn_back.pack(side="right", padx=30)
     
     def _add_field(self, parent, label, value):
-        """Добавляет поле в форму (Задание 4.1)."""
+        """Добавляет поле в форму."""
         row = tk.Frame(parent, bg=COLOR_MAIN_BG)
         row.pack(fill="x", pady=5)
         
@@ -149,14 +155,14 @@ class ViewForm:
         lbl_val.pack(side="left", fill="x", expand=True)
     
     def add_to_order(self):
-        """Обработчик кнопки «Добавить в заказ» с валидацией ввода из ДЗ (Задание 5.2 и 5.3)."""
+        """Обработчик кнопки «Добавить в заказ» с использованием StringVar."""
         if not self.product:
             messagebox.showerror("Ошибка", "Товар не выбран")
             return
 
         try:
-            # Извлекаем ввод и валидируем его
-            user_input = self.entry_qty.get().strip()
+            # Читаем значение из переменной StringVar
+            user_input = self.qty_var.get().strip()
             is_valid, result_value = validate_positive_int(user_input, "Количество для заказа")
             
             if not is_valid:
@@ -165,12 +171,10 @@ class ViewForm:
 
             order_qty = int(result_value)
             
-            # ДВУХУРОВНЕВЫЙ ФИКС БАГА С ID: Сначала ищем 'id', затем 'product_id'
             product_id = getattr(self.product, 'id', None)
             if product_id is None:
                 product_id = getattr(self.product, 'product_id', 0)
             
-            # Получаем точный остаток из базы данных по исправленному ID
             current_qty = get_product_quantity(product_id)
             
             if current_qty < 1:
@@ -181,20 +185,21 @@ class ViewForm:
                 messagebox.showerror("Ошибка остатка", f"Недостаточно товара. В наличии: {current_qty} шт.")
                 return
             
-            # Рассчитываем новый остаток для склада
             new_qty = current_qty - order_qty
             
-            # Фиксируем покупку в БД
-            add_order_to_db("Иванов Иван Иванович", product_id, order_qty)
+            # Считываем выбранную из выпадающего списка комплектацию
+            chosen_size = self.size_var.get()
+            client_name = f"Иванов Иван ({chosen_size})"
+            
+            add_order_to_db(client_name, product_id, order_qty)
             update_product_quantity(product_id, new_qty)
             
-            messagebox.showinfo("Успех", "Заказ оформлен")
+            messagebox.showinfo("Успех", f"Заказ оформлен! Выбрана комплектация: {chosen_size}")
             
-            # Вызываем callback обновления главной витрины (refresh)
             if self.on_add_to_order:
                 self.on_add_to_order()
                 
-            self.window.destroy()  # Закрываем карточку
+            self.window.destroy()
             
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось оформить заказ:\n{e}")
