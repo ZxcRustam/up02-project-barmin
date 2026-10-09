@@ -1,4 +1,4 @@
-"""Форма просмотра товара."""
+"""Форма просмотра товара с расширенными полями ввода из ДЗ."""
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -7,6 +7,8 @@ from styles import (
     FONT_SIZE_NORMAL, FONT_SIZE_HEADER, FONT_SIZE_TITLE, font
 )
 from resources import load_image, get_product_image
+# Импортируем валидатор для Домашнего задания
+from error_handler import validate_positive_int
 
 
 class ViewForm:
@@ -29,10 +31,9 @@ class ViewForm:
         
         self.window = tk.Toplevel(parent)
         
-        # Получаем название модели напрямую из объекта
         model_name = getattr(product, 'model', '[Без модели]')
         self.window.title(f"Просмотр — {model_name}")
-        self.window.geometry("700x600")
+        self.window.geometry("700x650")  # Увеличили высоту под новые поля ДЗ
         self.window.configure(bg=COLOR_MAIN_BG)
         
         self.build_ui()
@@ -50,13 +51,12 @@ class ViewForm:
         
         # Основная область — ГОТОВО
         main = tk.Frame(self.window, bg=COLOR_MAIN_BG)
-        main.pack(fill="both", expand=True, padx=20, pady=20)
+        main.pack(fill="both", expand=True, padx=20, pady=10)
         
         # Изображение — ГОТОВО
         img_frame = tk.Frame(main, bg=COLOR_MAIN_BG)
         img_frame.pack(side="left", padx=10)
         
-        # Извлекаем имя фото напрямую из объекта автомобиля
         photo_file = getattr(self.product, 'photo', '')
         img_filename = f"resources/{photo_file}" if photo_file else "resources/picture.png"
         
@@ -72,7 +72,6 @@ class ViewForm:
         info_frame = tk.Frame(main, bg=COLOR_MAIN_BG)
         info_frame.pack(side="left", fill="both", expand=True, padx=20)
         
-        # Берем данные напрямую из полей объекта Product
         brand = getattr(self.product, 'brand', '[Без марки]')
         model = getattr(self.product, 'model', '[Без модели]')
         
@@ -91,6 +90,21 @@ class ViewForm:
         self._add_field(info_frame, "Год выпуска", year)
         self._add_field(info_frame, "Цена", price)
         self._add_field(info_frame, "В наличии", qty)
+        
+        # ДЗ Задание 1. Поле Описание (Проверяем наличие в объекте, если нет — пишем заглушку)
+        description = getattr(self.product, 'description', "Официальный дилерский автомобиль. Комплектация базовая.")
+        self._add_field(info_frame, "Описание", description)
+
+        # ДЗ Задание 2. Поле ввода количества для заказа
+        input_row = tk.Frame(info_frame, bg=COLOR_MAIN_BG)
+        input_row.pack(fill="x", pady=10)
+        
+        tk.Label(input_row, text="Заказать (шт):", font=font(FONT_SIZE_NORMAL, bold=True),
+                 bg=COLOR_MAIN_BG, anchor="w", width=15).pack(side="left")
+        
+        self.entry_qty = tk.Entry(input_row, font=font(FONT_SIZE_NORMAL), width=5, relief="solid")
+        self.entry_qty.insert(0, "1")  # По умолчанию ставим 1 шт.
+        self.entry_qty.pack(side="left")
         
         # Кнопки — Задание 4.3
         btn_frame = tk.Frame(self.window, bg=COLOR_MAIN_BG)
@@ -111,9 +125,7 @@ class ViewForm:
         btn_back.pack(side="right", padx=30)
     
     def _add_field(self, parent, label, value):
-        """
-        Добавляет поле в форму (Задание 4.1).
-        """
+        """Добавляет поле в форму (Задание 4.1)."""
         row = tk.Frame(parent, bg=COLOR_MAIN_BG)
         row.pack(fill="x", pady=5)
         
@@ -125,22 +137,41 @@ class ViewForm:
         
         lbl_val = tk.Label(
             row, text=str(value), font=font(FONT_SIZE_NORMAL),
-            bg=COLOR_MAIN_BG, anchor="w"
+            bg=COLOR_MAIN_BG, anchor="w", wraplength=300, justify="left"
         )
         lbl_val.pack(side="left", fill="x", expand=True)
     
     def add_to_order(self):
-        """Обработчик кнопки «Добавить в заказ» (Задание 4.4)."""
-        if not self.on_add_to_order:
-            messagebox.showinfo("Информация", "Функция в разработке")
-            return
-            
+        """Обработчик кнопки «Добавить в заказ» с валидацией ввода из ДЗ (Задание 4.4)."""
         if not self.product:
             messagebox.showerror("Ошибка", "Товар не выбран")
             return
+
+        # ДЗ Задание 2: Извлекаем ввод пользователя и прогоняем через валидатор
+        user_input = self.entry_qty.get().strip()
+        is_valid, result_value = validate_positive_int(user_input, "Количество для заказа")
+        
+        if not is_valid:
+            # Превращаем текст ошибки строго в строку, чтобы Pylance не ругался
+            messagebox.showerror("Ошибка валидации", str(result_value))
+            return
+
+        # Гарантируем для Pylance, что здесь пришло строго число int
+        order_qty = int(result_value)
+
+        # Проверяем, есть ли такое количество машин на складе
+        available_qty = getattr(self.product, 'quantity', 0)
+        if order_qty > available_qty:
+            messagebox.showerror("Ошибка остатка", f"Нельзя заказать {order_qty} шт. В наличии только {available_qty} шт.")
+            return
+
+        if not self.on_add_to_order:
+            messagebox.showinfo("Информация", f"Товар добавлен в заказ (Тест валидации: успешно, количество = {order_qty})")
+            return
             
         try:
-            self.on_add_to_order(self.product)
+            # Передаем управление callback-функции
+            self.on_add_to_order(self.product, order_qty)
             messagebox.showinfo("Успех", "Товар добавлен в заказ")
         except Exception as e:
             messagebox.showerror("Ошибка заказа", f"Не удалось добавить товар:\n{e}")
