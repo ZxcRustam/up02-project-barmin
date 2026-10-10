@@ -11,11 +11,13 @@ import order_manager as om
 class OrdersWindow:
     """Окно списка заказов."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, current_user=None):
         """
-        Инициализация окна.
+        Инициализация окна списка заказов (Задание 6.3).
         :param parent: родительское окно
+        :param current_user: кортеж текущего авторизованного пользователя
         """
+        self.current_user = current_user
         self.window = tk.Toplevel(parent)
         self.window.title("Список заказов")
         self.window.geometry("800x500")
@@ -50,7 +52,7 @@ class OrdersWindow:
 
         self.tree.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Привязка двойного клика (принимает event через аргумент метода)
+        # Привязка двойного клика
         self.tree.bind("<Double-1>", self.on_order_select)
 
         # Кнопки
@@ -77,11 +79,9 @@ class OrdersWindow:
 
     def load_orders(self):
         """Загружает заказы из БД."""
-        # Очищаем таблицу
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        # Загружаем заказы
         try:
             orders = om.get_all_orders()
             for order in orders:
@@ -90,23 +90,22 @@ class OrdersWindow:
             messagebox.showerror("Ошибка", f"Не удалось загрузить заказы:\n{e}")
 
     def on_order_select(self, event=None):
-        """Обработчик выбора заказа (Задание 4.2)."""
+        """Обработчик выбора заказа."""
         selected = self.tree.selection()
         if not selected:
-            if event is not None:  # Если кликнули мимо строк по таблице при Double-1
+            if event is not None:
                 return
             messagebox.showwarning("Ошибка", "Выберите заказ")
             return
 
-        # Получаем данные выбранного заказа
+        # Получаем данные выбранной строки по первому элементу кортежа selected
         item = self.tree.item(selected[0])
-        order_values = item["values"]
+        order_values = item.get("values")
         
         if not order_values:
             return
             
         order_id = order_values[0]
 
-        # Напрямую открываем окно состава заказа
         from order_items_window import OrderItemsWindow
         OrderItemsWindow(self.window, order_id)

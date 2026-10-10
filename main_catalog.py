@@ -1,19 +1,14 @@
-"""Главное окно приложения с каталогом (Вариант 22: Автомобили)."""
+"""Главное окно приложения с каталогом и разграничением прав (Вариант 22: Автомобили)."""
 
 import sqlite3
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
-# Официальный импорт настроек из config
 from config import DB_PATH, APP_TITLE
-
-# Задание 7.4. Официальный импорт стилей КИМ
 from styles import COLOR_MAIN_BG, COLOR_SECONDARY_BG, COLOR_ACCENT, FONT_SIZE_TITLE, FONT_SIZE_NORMAL, font
 from models import Product
 from catalog import create_product_card
 from resources import load_image_proportional, PATH_LOGO, PATH_ICON
-
-# Задание 6.2. Импорт безопасного вызова обработчика ошибок
 from error_handler import safe_call
 
 
@@ -38,43 +33,42 @@ class CatalogWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(APP_TITLE)
-        self.root.geometry("950x700")  # Немного расширили окно под кнопку заказов
+        self.root.geometry("950x700")
         
-        # Задание 7.6. Устанавливаем основной фон окна из КИМ
+        self.current_user = None
+        self.user_label = tk.Label()  # Инициализация пустым виджетом во избежание None-ошибок
+        self.header_frame = None
+        
         self.root.configure(bg=COLOR_MAIN_BG)
-
         set_app_icon(self.root, PATH_ICON)
 
         self.build_ui()
         self.load_products()
+        self.require_auth()
 
     def build_ui(self):
-        # Шапка с логотипом и заголовком (Задание 7.6. Цвет COLOR_SECONDARY_BG)
-        header = tk.Frame(self.root, bg=COLOR_SECONDARY_BG, height=80)
-        header.pack(fill="x")
-        header.pack_propagate(False)
+        """Строит интерфейс окна."""
+        self.header_frame = tk.Frame(self.root, bg=COLOR_SECONDARY_BG, height=80)
+        self.header_frame.pack(fill="x")
+        self.header_frame.pack_propagate(False)
 
         logo = load_image_proportional(PATH_LOGO, max_size=(60, 60))
         if logo:
-            logo_label = tk.Label(header, image=logo, bg=COLOR_SECONDARY_BG)
+            logo_label = tk.Label(self.header_frame, image=logo, bg=COLOR_SECONDARY_BG)
             logo_label.__dict__['image'] = logo  
             logo_label.pack(side="left", padx=15)
         else:
-            tk.Label(header, text="[ЛОГОТИП]", bg=COLOR_SECONDARY_BG).pack(side="left", padx=15)
+            tk.Label(self.header_frame, text="[ЛОГОТИП]", bg=COLOR_SECONDARY_BG).pack(side="left", padx=15)
 
-        # Заголовок по центру (Задание 7.5. Шрифт Calibri TITLE через font())
-        tk.Label(header, text="КАТАЛОГ АВТОМОБИЛЕЙ",
+        tk.Label(self.header_frame, text="КАТАЛОГ АВТОМОБИЛЕЙ",
                  font=font(FONT_SIZE_TITLE, bold=True),
-                 bg=COLOR_SECONDARY_BG).pack(side="left", expand=True, padx=(50, 0))
+                 bg=COLOR_SECONDARY_BG).pack(side="left", padx=(30, 0))
 
-        # === Задание 5.2 и 5.3. Кнопка "Заказы" в правой части шапки каталога ===
-        tk.Button(header, text="Заказы", command=self.open_orders,
-                  bg=COLOR_ACCENT, fg="white",
-                  font=font(FONT_SIZE_NORMAL, bold=True),
-                  relief="flat", cursor="hand2",
-                  padx=15, pady=5).pack(side="right", padx=20, pady=20)
+        self.user_label = tk.Label(self.header_frame, text="Не авторизован",
+                                   font=font(FONT_SIZE_NORMAL, bold=True),
+                                   bg=COLOR_SECONDARY_BG)
+        self.user_label.pack(side="right", padx=15)
 
-        # Область с прокруткой (Canvas + Scrollbar)
         self.canvas = tk.Canvas(self.root, bg=COLOR_MAIN_BG, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
         
@@ -93,13 +87,49 @@ class CatalogWindow:
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+    def require_auth(self):
+        """Запрашивает авторизацию при старте."""
+        from auth import AuthWindow
+        AuthWindow(self.root, self.on_auth_success)
+
+    def on_auth_success(self, user):
+        """Обработчик успешного входа."""
+        self.current_user = user
+        if user and len(user) > 5:
+            fio = f"{user[1]} {user[2]} {user[3] or ''}".strip()
+            role_name = str(user[5])
+            self.user_label.config(text=f"{fio}\n({role_name})")
+            self.add_role_buttons(role_name)
+
+    def add_role_buttons(self, role):
+        """Выводит кнопки по ролям."""
+        if role in ("Менеджер", "Администратор") and self.header_frame:
+            btn_orders = tk.Button(
+                self.header_frame, text="Заказы", command=self.open_orders,
+                bg=COLOR_ACCENT, fg="white", font=font(FONT_SIZE_NORMAL, bold=True),
+                relief="flat", cursor="hand2", padx=15, pady=5
+            )
+            btn_orders.pack(side="right", padx=15, pady=20)
+
+        if role == "Администратор" and self.header_frame:
+            btn_admin = tk.Button(
+                self.header_frame, text="Админ-панель", command=self.open_admin,
+                bg=COLOR_ACCENT, fg="white", font=font(FONT_SIZE_NORMAL, bold=True),
+                relief="flat", cursor="hand2", padx=15, pady=5
+            )
+            btn_admin.pack(side="right", padx=10, pady=20)
+
     def open_orders(self):
-        """Открывает окно списка заказов (Задание 5.2)."""
+        """Открывает окно списка заказов."""
         from orders_window import OrdersWindow
-        OrdersWindow(self.root)
+        OrdersWindow(self.root, self.current_user)
+
+    def open_admin(self):
+        """Заглушка для окна админ-панели."""
+        messagebox.showinfo("Админ-панель", "Модуль Администратора будет добавлен в следующем задании.")
 
     def _fetch_products_from_db(self):
-        """Вспомогательный метод для прямого извлечения сырых строк из БД."""
+        """Извлечение строк из БД."""
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute("SELECT * FROM Товар")
@@ -108,22 +138,19 @@ class CatalogWindow:
         return rows
 
     def refresh_catalog(self):
-        """Обновляет содержимое витрины каталога после покупки (Задание 5.6)."""
+        """Обновляет содержимое витрины каталога."""
         for widget in self.catalog_frame.winfo_children():
             widget.destroy()
         self.load_products()
 
     def load_products(self):
-        """Загружает товары с обработкой ошибок через safe_call (Задание 6.2)."""
-        # Безопасно вытаскиваем строки из базы данных
+        """Загружает товары."""
         rows = safe_call(self._fetch_products_from_db)
         if rows is None:
             rows = []
 
-        # Безопасно обрабатываем каждую строку и строим интерфейс карточек
         for r in rows:
             try:
-                # Фикс индексов и типов для Варианта 22: Автомобили
                 product_obj = Product(
                     product_id=int(r[0]) if r[0] is not None else 0,
                     brand=str(r[1]) if r[1] else "[Без марки]",
@@ -133,7 +160,6 @@ class CatalogWindow:
                     quantity=int(r[5]) if r[5] is not None else 0,
                     photo=str(r[6]) if len(r) > 6 and r[6] else ""
                 )
-                # Оборачиваем создание карточки в safe_call и передаем рефреш (Задание 5.6)
                 safe_call(create_product_card, self.catalog_frame, product_obj, refresh=self.refresh_catalog)
             except Exception as e:
                 print(f"[DEBUG] Ошибка парсинга строки продукта: {e}")
