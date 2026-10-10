@@ -219,29 +219,40 @@ def create_order(client, items):
         
 def get_order_items(order_id):
     """
-    Возвращает состав заказа (Универсальная версия для Варианта 22).
+    Возвращает состав заказа с полной информацией (Исправлено под Вариант 22).
+    :param order_id: id заказа
+    :return: список кортежей (id, марка, модель, комплектация, количество, цена)
     """
     try:
         conn = get_connection()
         cur = conn.cursor()
         
-        # 1. Сначала пробуем найти позиции в таблице Состав_заказа
+        # 1. Пробуем найти в таблице Состав_заказа
         cur.execute("""
-            SELECT Состав_заказа.id, Товар.модель,
-                   Состав_заказа.комплектация, Состав_заказа.количество,
-                   Состав_заказа.цена
+            SELECT
+                Состав_заказа.id,
+                Товар.марка,
+                Товар.модель,
+                Состав_заказа.комплектация,
+                Состав_заказа.количество,
+                Состав_заказа.цена
             FROM Состав_заказа
             JOIN Товар ON Состав_заказа.товар_id = Товар.id
             WHERE Состав_заказа.заказ_id = ?
+            ORDER BY Состав_заказа.id
         """, (int(order_id),))
         rows = cur.fetchall()
         
-        # 2. Если в Состав_заказа пусто (как для заказов 7, 8, 9), берем данные напрямую из таблицы Заказ!
+        # 2. Если пусто (старые заказы), берем данные напрямую из таблицы Заказ
         if not rows:
             cur.execute("""
-                SELECT Заказ.id, Товар.модель,
-                       'Базовая' AS комплектация, Заказ.количество,
-                       Товар.цена
+                SELECT 
+                    Заказ.id, 
+                    Товар.марка,
+                    Товар.модель,
+                    'Базовая' AS комплектация, 
+                    Заказ.количество,
+                    Товар.цена
                 FROM Заказ
                 JOIN Товар ON Заказ.товар_id = Товар.id
                 WHERE Заказ.id = ? AND Заказ.товар_id IS NOT NULL
@@ -253,4 +264,43 @@ def get_order_items(order_id):
     except Exception as e:
         print(f"[DEBUG] Ошибка получения состава заказа: {e}")
         return []
+
+
+def get_order_total(order_id):
+    """
+    Возвращает итоговую сумму заказа (Исправлено под Вариант 22).
+    :param order_id: id заказа
+    :return: сумма (float)
+    """
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # 1. Проверяем сумму в таблице Состав_заказа
+        cur.execute("""
+            SELECT SUM(количество * цена)
+            FROM Состав_заказа
+            WHERE заказ_id = ?
+        """, (int(order_id),))
+        row = cur.fetchone()
+        total = row[0] if row and row[0] is not None else None
+        
+        # 2. Если в Состав_заказа пусто, считаем сумму по таблице Заказ
+        if total is None or total == 0.0:
+            cur.execute("""
+                SELECT SUM(Заказ.количество * Товар.цена)
+                FROM Заказ
+                JOIN Товар ON Заказ.товар_id = Товар.id
+                WHERE Заказ.id = ?
+            """, (int(order_id),))
+            row = cur.fetchone()
+            total = row[0] if row and row[0] is not None else 0.0
+            
+        conn.close()
+        return float(total)
+    except Exception as e:
+        print(f"[DEBUG] Ошибка расчета итоговой суммы: {e}")
+        return 0.0
+
+
 

@@ -78,24 +78,20 @@ class OrderItemsWindow:
             self.tree.delete(row)
 
         try:
-            # Извлекаем строки из базы данных по умному SQL-запросу
+            # Получаем строки через новый адаптированный метод
             items = om.get_order_items(self.order_id)
-            total = 0.0
-
+            
             for item in items:
-                # ЧЕТКИЙ ПАРСИНГ ИНДЕКСОВ КОРТЕЖА ИЗ БД:
-                # item[0] - id связи / заказа (не выводим)
-                # item[1] - Товар.модель (название машины)
-                # item[2] - Комплектация / размер
-                # item[3] - Количество в заказе
-                # item[4] - Цена автомобиля
-                name = str(item[1])
-                size = str(item[2])
-                quantity = int(item[3])
-                price = float(item[4])
+                # Настраиваем индексы под новый SQL-ответ (id, марка, модель, комплектация, кол-во, цена)
+                brand = str(item[1])
+                model = str(item[2])
+                name = f"{brand} {model}" # Соединяем Марку и Модель в красивое название
+                
+                size = str(item[3])       # Комплектация
+                quantity = int(item[4])   # Количество
+                price = float(item[5])    # Цена автомобиля
                 
                 item_total = quantity * price
-                total += item_total
 
                 # Красивое разделение тысяч пробелами
                 formatted_price = f"{price:,.2f}".replace(",", " ")
@@ -105,6 +101,8 @@ class OrderItemsWindow:
                                  values=(name, size, quantity,
                                          formatted_price, formatted_total))
 
+            # Итоговую сумму берем напрямую из новой базы данных через get_order_total
+            total = om.get_order_total(self.order_id)
             formatted_grand_total = f"{total:,.2f}".replace(",", " ")
             self.total_label.config(text=f"Итого: {formatted_grand_total} руб.")
 
