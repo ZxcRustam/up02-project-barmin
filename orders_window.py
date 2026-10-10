@@ -98,7 +98,6 @@ class OrdersWindow:
             messagebox.showwarning("Ошибка", "Выберите заказ")
             return
 
-        # Получаем данные выбранной строки по первому элементу кортежа selected
         item = self.tree.item(selected[0])
         order_values = item.get("values")
         
@@ -107,5 +106,7 @@ class OrdersWindow:
             
         order_id = order_values[0]
 
+        # ИСПРАВЛЕНО: Передаем сессию текущего пользователя current_user
         from order_items_window import OrderItemsWindow
-        OrderItemsWindow(self.window, order_id)
+        OrderItemsWindow(self.window, order_id, current_user=self.current_user)
+

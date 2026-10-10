@@ -302,5 +302,91 @@ def get_order_total(order_id):
         print(f"[DEBUG] Ошибка расчета итоговой суммы: {e}")
         return 0.0
 
+def update_order_date(order_id, new_date):
+    """
+    Обновляет дату заказа (Задание 4.2).
+    :param order_id: id заказа
+    :param new_date: новая дата (YYYY-MM-DD)
+    :return: True при успехе, False при ошибке
+    """
+    conn = get_connection()
+    cur = conn.cursor()
 
+    try:
+        cur.execute(
+            "UPDATE Заказ SET дата = ? WHERE id = ?",
+            (str(new_date), int(order_id))
+        )
+        conn.commit()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка обновления даты: {e}")
+        return False
+
+    finally:
+        conn.close()
+
+
+def get_order_by_id(order_id):
+    """
+    Возвращает заказ по id (Задание 4.3).
+    :param order_id: id заказа
+    :return: кортеж (id, дата, клиент) или None
+    """
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, дата, клиент FROM Заказ WHERE id = ?", (int(order_id),))
+        row = cur.fetchone()
+        conn.close()
+        return row
+    except Exception as e:
+        print(f"[DEBUG] Ошибка получения заказа по ID: {e}")
+        return None
+
+def delete_order_item(item_id):
+    """
+    Удаляет позицию из состава заказа (Задание 5.2).
+    :param item_id: id позиции
+    :return: True при успехе, False при ошибке
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        # Получаем данные позиции для восстановления остатков (Вариант 22)
+        cur.execute("""
+            SELECT товар_id, количество
+            FROM Состав_заказа
+            WHERE id = ?
+        """, (int(item_id),))
+        row = cur.fetchone()
+
+        if not row:
+            return False
+
+        product_id, quantity = int(row[0]), int(row[1])
+
+        # Удаляем позицию из состава
+        cur.execute("DELETE FROM Состав_заказа WHERE id = ?", (int(item_id),))
+
+        # Восстанавливаем остатки в таблице Товар
+        cur.execute("""
+            UPDATE Товар
+            SET количество = количество + ?
+            WHERE id = ?
+        """, (quantity, product_id))
+
+        conn.commit()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка удаления позиции: {e}")
+        return False
+
+    finally:
+        conn.close()
 
